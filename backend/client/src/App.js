@@ -68,7 +68,7 @@ function MapComponent() {
     defaultCenter={props.center}
     defaultZoom={props.zoom} >
       {locations && locations.map(loc => {
-        return <TruckLocation key={loc.id} lat={loc.location._lat} lng={loc.location._long} text={loc.name} />
+        return <TruckLocation key={loc.id} lat={loc.location[0]} lng={loc.location[1]} text={loc.name} />
       })}
     </GoogleMapReact>)
 }

@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from 'react'
 import './App.css';
 import GoogleMapReact from 'google-map-react';
 import firebase from 'firebase/app';
@@ -30,29 +31,54 @@ function SignIn() {
   )
 }
 
-function App() {
+function TruckLocation(props) {
+  // console.log(props)
+  const width = 20;
+  const height = 20;
+  const truckStyle = {
+    position: 'absolute',
+    width,
+    height,
+    left: -width / 2,
+    top: -height / 2,
+
+    border: '2.5px solid #f44336',
+    backgroundColor: 'white',
+    textAlign: 'center',
+    color: '#3f51b5',
+    fontSize: 8,
+    fontWeight: 'bold',
+    padding: 4
+  }
+  return (<div style={truckStyle}>{props.text}</div>);
+}
+
+function MapComponent() {
   const props = {
-      center: {lat: 40.73, lng: -73.93}, 
-      zoom: 12
+    center: {lat: 38.0006322, lng: -121.2894793}, 
+    zoom: 10
   }
 
+  const locationsRef = firestore.collection('truck_locations');
+  const [locations] = useCollectionData(locationsRef);
+  console.log(locations)
+  
+  return (<GoogleMapReact
+    bootstrapURLKeys={{ key: 'AIzaSyDYSiy0JBx9SqSsahYAe3wDecvX2JYaOyo' }}
+    defaultCenter={props.center}
+    defaultZoom={props.zoom} >
+      {locations && locations.map(loc => {
+        return <TruckLocation key={loc.id} lat={loc.location._lat} lng={loc.location._long} text={loc.name} />
+      })}
+    </GoogleMapReact>)
+}
+
+function App() {
   const [user] = useAuthState(auth);
 
   return (
     <div className="App" style={{ height: '100vh', width: '100%' }}>
-      {user ? <GoogleMapReact
-        bootstrapURLKeys={{ key: 'AIzaSyDYSiy0JBx9SqSsahYAe3wDecvX2JYaOyo' }}
-        defaultCenter={props.center}
-        defaultZoom={props.zoom}
-        onGoogleApiLoaded={({map, maps}) => {let marker = new maps.Marker({
-          position: { lat: 40.73, lng: -73.93 },
-          map,
-          title: 'Hello World!'
-          });
-          return marker;
-         }}
-        yesIWantToUseGoogleMapApiInternals
-      /> : <SignIn />}
+      {user ? <MapComponent /> : <SignIn />}
     </div>
   );
 }

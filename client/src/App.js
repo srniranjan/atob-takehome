@@ -4,6 +4,8 @@ import GoogleMapReact from 'google-map-react';
 import firebase from 'firebase/app';
 import 'firebase/firestore';
 import 'firebase/auth';
+import fileDownload from 'js-file-download';
+import haversine from 'haversine';
 
 import {useAuthState} from 'react-firebase-hooks/auth';
 import {useCollectionData} from 'react-firebase-hooks/firestore';
@@ -62,22 +64,47 @@ function MapComponent() {
   const locationsRef = firestore.collection('truck_locations');
   const [locations] = useCollectionData(locationsRef);
   console.log(locations)
+
+  const generateCSV = () => {
+    if (locations && locations.length > 0) {
+      const nearbyTrucks = locations.filter(loc => {
+        const start = {
+          latitude: props.center.lat,
+          longitude: props.center.lng
+        }
+        const end = {
+          latitude: loc.location[0],
+          longitude: loc.location[1]
+        }
+        return (haversine(start, end, {unit: 'meter'}) <= 200 * 1000)
+      })
+      const truckLines = nearbyTrucks.map(loc => [`"${loc.id}"`, `"${loc.name}"`, `"${loc.location[0]}"`, `"${loc.location[1]}"`])
+      const headerLine = ['ID,Name,Lattitude,Longitude']
+      const lines = [headerLine, ...truckLines].join('\r\n')
+      fileDownload(lines, 'nearby_trucks.csv')
+    }
+  }
   
-  return (<GoogleMapReact
-    bootstrapURLKeys={{ key: 'AIzaSyDYSiy0JBx9SqSsahYAe3wDecvX2JYaOyo' }}
-    defaultCenter={props.center}
-    defaultZoom={props.zoom} >
-      {locations && locations.map(loc => {
-        return <TruckLocation key={loc.id} lat={loc.location[0]} lng={loc.location[1]} text={loc.name} />
-      })}
-    </GoogleMapReact>)
+  return (
+    <div style={{ height: '95vh', width: '100%' }}>
+      <GoogleMapReact
+        bootstrapURLKeys={{ key: 'AIzaSyDYSiy0JBx9SqSsahYAe3wDecvX2JYaOyo' }}
+        defaultCenter={props.center}
+        defaultZoom={props.zoom} >
+          {locations && locations.map(loc => {
+            return <TruckLocation key={loc.id} lat={loc.location[0]} lng={loc.location[1]} text={loc.name} />
+          })}
+        </GoogleMapReact>
+        <button onClick={generateCSV}>Download CSV of nearby trucks</button>
+    </div>
+    )
 }
 
 function App() {
   const [user] = useAuthState(auth);
 
   return (
-    <div className="App" style={{ height: '100vh', width: '100%' }}>
+    <div className="App">
       {user ? <MapComponent /> : <SignIn />}
     </div>
   );
